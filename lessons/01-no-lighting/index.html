@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>A Model with no Lighting</title>
+  <link type='text/css' rel='stylesheet' href='../../shared/style.css' />
+  <style>
+  </style>
+</head>
+<body>
+  
+  <script id="vertex-shader" type="x-shader/x-vertex">
+    // The positions are passed in by the order defined by the elements array
+    attribute vec3 position;
+    
+    // The transformation of the model
+    uniform mat4 model;
+    
+    // The transformation of the camera
+    uniform mat4 view;
+    
+    // The transformation of the perspective projection
+    uniform mat4 projection;
+    
+    void main() {
+      // gl_Position = projection * view * model * vec4( position, 1.0 );
+      
+      gl_Position = projection * view * model * vec4( position, 1.0 );
+    }
+  </script>
+
+  <script id="fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+
+    // The color of the model
+    uniform vec4 color;
+    
+    void main() {
+      gl_FragColor = color;
+    }
+  </script>
+    
+  <canvas id="canvas"></canvas>
+    
+  <script type='text/javascript' src='../../shared/bunny-model.js'></script>
+  <script type='text/javascript' src='../../shared/matrices.js'></script>
+  <script type='text/javascript' src='../../shared/shaders.js'></script>
+  <script type='text/javascript' src='../../shared/normals.js'></script>
+  <script type='text/javascript' src='script.js'></script>
+    
+</body>
+</html>
