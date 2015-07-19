@@ -17,7 +17,7 @@ function createShader (gl, source, type) {
   if ( !gl.getShaderParameter(shader, gl.COMPILE_STATUS) ) {
     
     var info = gl.getShaderInfoLog( shader );
-    throw "Could not compile WebGL program. \n\n" + info;
+    throw new Error("Could not compile WebGL program. \n\n" + info);
   }
 
   return shader
@@ -34,7 +34,7 @@ function linkProgram (gl, vertexShader, fragmentShader) {
 
   if ( !gl.getProgramParameter( program, gl.LINK_STATUS) ) {
     var info = gl.getProgramInfoLog(program);
-    throw "Could not compile WebGL program. \n\n" + info;
+    throw new Error("Could not compile WebGL program. \n\n" + info);
   }
   
   return program;

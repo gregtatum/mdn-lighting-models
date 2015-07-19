@@ -10,21 +10,22 @@
 <body>
   
   <script id="vertex-shader" type="x-shader/x-vertex">
-    // The positions are passed in by the order defined by the elements array
+    // The normals are added along with the positions
     attribute vec3 position;
+    attribute vec3 normal;
     
-    // The transformation of the model
+    // The transformation matrices
     uniform mat4 model;
-    
-    // The transformation of the camera
     uniform mat4 view;
-    
-    // The transformation of the perspective projection
     uniform mat4 projection;
     
+    // Pass the normal down to the fragment shader
+    varying vec3 vNormal;
+    
     void main() {
-      // gl_Position = projection * view * model * vec4( position, 1.0 );
       
+      vNormal = normal;
+      // gl_Position = projection * view * model * vec4( position, 1.0 );
       gl_Position = projection * view * model * vec4( position, 1.0 );
     }
   </script>
@@ -32,11 +33,21 @@
   <script id="fragment-shader" type="x-shader/x-fragment">
     precision mediump float;
 
-    // The color of the model
-    uniform vec4 color;
+    uniform vec4 color; //unused now
+    
+    /*
+      The varying normal is passed in from the vertex shader. The three
+      normals of the triangle are merged together and averaged based
+      on the position of this fragment and used by this shader.
+    */
+    varying vec3 vNormal;
     
     void main() {
-      gl_FragColor = color;
+      
+      //Normals are ranged -1 to 1. Transform it to 0 to 1
+      vec3 adjustedNormal = vNormal * 0.5 + 0.5;
+      
+      gl_FragColor = vec4(adjustedNormal, 1.0);
     }
   </script>
     
