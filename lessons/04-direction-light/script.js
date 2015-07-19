@@ -1,32 +1,22 @@
 /*
-  The key to taking a flat shaded model and transforming it into a lit
-  one lies in the user of a normal vector. The normal vector is a
-  normalized vector (a vector with the length of one) that is
-  perpendicular to the surface of the object.
-
-  The bunny model has these values pre-calculated, but they can be
-  calculated on the fly. There are typically two basic approaches.
-  The first is to calculate the vertex normals. At each vertex
-  the normal is calculated. The shader then smooths these out for
-  each fragment creating a nicely smoothed surface.
-
-  The next way to do this is with face normals. These normals are
-  calculated once per triangle. The three vertices of the triangle
-  then share the same normal values. Each triangle is flat when
-  shaded and is not smoothed from its neighbors.
-
-  At this point the shader accomplishes some pseudo-lighting by
-  assigning the color to the normal itself. The only transformation
-  is that the normal's three dimensions are in the range of -1 to 1.
-  The shader will transform the normal to be in the range of 0 to 1
-  in order to work as a color.
-
-  Exercise:
-
-    * Combine the existing color uniform with the normal in the
-      fragment shader to change the color of the model. The overall
-      brightness of the color will most likely need to be dimmed.
+  TODO
 */
+
+// A utility function to make a vector have a length of 1
+function normalize( vector ) {
+  
+  var length = Math.sqrt(
+    vector[0] * vector[0] +
+    vector[1] * vector[1] +
+    vector[2] * vector[2]
+  )
+  
+  return [
+    vector[0] / length,
+    vector[1] / length,
+    vector[2] / length
+  ]
+}
 
 function BunnyDemo () {
   
@@ -44,6 +34,8 @@ function BunnyDemo () {
   this.transforms = {}; // All of the matrix transforms get saved here
   
   this.color = [0.0, 0.4, 0.7, 1.0];
+  
+  this.light = normalize([-0.5, 1.0, 1.0]);
   
   //These matrices don't change and only need to be computed once
   this.computeProjectionMatrix();
@@ -101,14 +93,16 @@ BunnyDemo.prototype.createLocations = function() {
   var locations = {
     
     // Save the uniform locations
-    model      : gl.getUniformLocation(this.webglProgram, "model"),
-    view       : gl.getUniformLocation(this.webglProgram, "view"),
-    projection : gl.getUniformLocation(this.webglProgram, "projection"),
-    color      : gl.getUniformLocation(this.webglProgram, "color"),
-  
+    model          : gl.getUniformLocation(this.webglProgram, "model"),
+    view           : gl.getUniformLocation(this.webglProgram, "view"),
+    projection     : gl.getUniformLocation(this.webglProgram, "projection"),
+    normalMatrix   : gl.getUniformLocation(this.webglProgram, "normalMatrix"),
+    color          : gl.getUniformLocation(this.webglProgram, "color"),
+    light          : gl.getUniformLocation(this.webglProgram, "light"),
+    
     // Save the attribute location
-    position   : gl.getAttribLocation(this.webglProgram, "position"),
-    normal     : gl.getAttribLocation(this.webglProgram, "normal")
+    position       : gl.getAttribLocation(this.webglProgram, "position"),
+    normal         : gl.getAttribLocation(this.webglProgram, "normal")
   }
   
   return locations;
@@ -157,6 +151,17 @@ BunnyDemo.prototype.computeModelMatrix = function( now ) {
   */
 };
 
+BunnyDemo.prototype.computeNormalMatrix = function() {
+  
+  //Combine the view and the model together
+  var modelView = multiplyMatrices(this.transforms.view, this.transforms.model);
+  
+  // Run the function from the shared/matrices.js that takes
+  // the inverse and then transpose of the provided matrix
+  // and returns a 3x3 matrix.
+  this.transforms.normalMatrix = normalMatrix(modelView)
+};
+
 BunnyDemo.prototype.draw = function() {
   
   var gl = this.gl;
@@ -164,6 +169,7 @@ BunnyDemo.prototype.draw = function() {
   
   // Compute our model matrix
   this.computeModelMatrix( now );
+  this.computeNormalMatrix();
   
   // Update the data going to the GPU
   this.updateAttributesAndUniforms();
@@ -183,7 +189,9 @@ BunnyDemo.prototype.updateAttributesAndUniforms = function() {
   gl.uniformMatrix4fv(this.locations.projection, false, this.transforms.projection);
   gl.uniformMatrix4fv(this.locations.view, false, this.transforms.view);
   gl.uniformMatrix4fv(this.locations.model, false, this.transforms.model);
+  gl.uniformMatrix3fv(this.locations.normalMatrix, false, this.transforms.normalMatrix);
   gl.uniform4fv(this.locations.color, this.color);
+  gl.uniform3fv(this.locations.light, this.light);
   
   // Set the positions attribute
   gl.enableVertexAttribArray(this.locations.position);
