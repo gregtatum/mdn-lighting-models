@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>A Model with no Lighting</title>
+  <link type='text/css' rel='stylesheet' href='../../shared/style.css' />
+  <style>
+  </style>
+</head>
+<body>
+  
+  <script id="vertex-shader" type="x-shader/x-vertex">
+    // The normals are added along with the positions
+    attribute vec3 position;
+    attribute vec3 normal;
+    
+    // The transformation matrices
+    uniform mat4 model;
+    uniform mat4 view;
+    uniform mat4 projection;
+    uniform mat3 normalMatrix;
+    
+    // Pass the normal down to the fragment shader
+    varying vec3 vNormal;
+    
+    void main() {
+      
+      vNormal = normalMatrix * normal;
+      // gl_Position = projection * view * model * vec4( position, 1.0 );
+      gl_Position = projection * view * model * vec4( position, 1.0 );
+    }
+  </script>
+
+  <script id="fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+
+    // The model color
+    uniform vec4 color;
+    
+    // The lights
+    uniform vec3 spotLight;
+    uniform vec3 fillLight;
+    uniform vec3 backLight;
+    uniform float lightIntensity;
+    
+    varying vec3 vNormal;
+    
+    void main() {
+      
+      float light = lightIntensity * (
+        max( 0.0, dot( vNormal, spotLight ) )
+        // dot( vNormal, fillLight ) +
+        // dot( vNormal, backLight )
+      );
+      
+      gl_FragColor = vec4(color.xyz * light, color.w);
+    }
+  </script>
+    
+  <canvas id="canvas"></canvas>
+    
+  <script type='text/javascript' src='../../shared/bunny-model.js'></script>
+  <script type='text/javascript' src='../../shared/matrices.js'></script>
+  <script type='text/javascript' src='../../shared/shaders.js'></script>
+  <script type='text/javascript' src='script.js'></script>
+    
+</body>
+</html>
