@@ -52,15 +52,10 @@ function BunnyDemo () {
   this.buffers = this.createBuffers();
   this.locations = this.createLocations();
   this.transforms = {}; // All of the matrix transforms get saved here
+  this.createLights();
   
-  this.color = [0.0, 0.4, 0.7, 1.0];
   
-  this.lightIntensity = 2;
-  this.lights = {
-    spot : normalize([-0.5, 1.0, 0.2]), // from the front left and down
-    fill : normalize([0.8, 0.2, -1.0]), // point straight down
-    back : normalize([0.5, -0.2, 1.0])  // back light
-  };
+  this.color = [0.8, 1.0, 1.0, 1.0];
   
   //These matrices don't change and only need to be computed once
   this.computeProjectionMatrix();
@@ -123,10 +118,6 @@ BunnyDemo.prototype.createLocations = function() {
     projection     : gl.getUniformLocation(this.webglProgram, "projection"),
     normalMatrix   : gl.getUniformLocation(this.webglProgram, "normalMatrix"),
     color          : gl.getUniformLocation(this.webglProgram, "color"),
-    spotLight      : gl.getUniformLocation(this.webglProgram, "spotLight"),
-    fillLight      : gl.getUniformLocation(this.webglProgram, "fillLight"),
-    backLight      : gl.getUniformLocation(this.webglProgram, "backLight"),
-    lightIntensity : gl.getUniformLocation(this.webglProgram, "lightIntensity"),
     
     // Save the attribute location
     position       : gl.getAttribLocation(this.webglProgram, "position"),
@@ -190,6 +181,78 @@ BunnyDemo.prototype.computeNormalMatrix = function() {
   this.transforms.normalMatrix = normalMatrix(modelView)
 };
 
+BunnyDemo.prototype.createLights = function() {
+	
+	var spotLight = new SpotLight(
+		[-15, 15, 15],  //position
+		[1,1,0.9],      //color
+		1,              //intensity
+		0,              //linearAttenuation
+		1/1000         //quadraticAttenuation
+	);
+	
+	var fillLight = new SpotLight(
+		[15, -5, 5],    //position
+		[0.6,0.8,1.0],  //color
+		1,              //intensity
+		0,              //linearAttenuation
+		1/1000         //quadraticAttenuation
+	);
+	
+	var rimLight = new SpotLight(
+		[5, 10, -5],  //position
+		[1.0,1.0,1.0],  //color
+		1,              //intensity
+		0,              //linearAttenuation
+		1/1000         //quadraticAttenuation
+	);
+	
+	this.lights = [spotLight, fillLight, rimLight];
+	
+	this.locations.lights = {
+		position             : this.gl.getUniformLocation(this.webglProgram, "lightPosition"),
+		color                : this.gl.getUniformLocation(this.webglProgram, "lightColor"),
+		intensity            : this.gl.getUniformLocation(this.webglProgram, "lightIntensity"),
+		linearAttenuation    : this.gl.getUniformLocation(this.webglProgram, "lightLinearAttenuation"),
+		quadraticAttenuation : this.gl.getUniformLocation(this.webglProgram, "lightQuadraticAttenuation")
+	};
+
+	this.buffers.lights = {
+		position             : new Float32Array(this.lights.length * 3),
+		color                : new Float32Array(this.lights.length * 3),
+		intensity            : new Float32Array(this.lights.length),
+		linearAttenuation    : new Float32Array(this.lights.length),
+		quadraticAttenuation : new Float32Array(this.lights.length)
+	};
+	
+	this.updateLightBuffers();
+};
+
+BunnyDemo.prototype.updateLightBuffers = function() {
+	
+	// Set some shortcuts to values
+	var gl = this.gl;
+	var buffers = this.buffers.lights;
+	var locations = this.locations.lights;
+	
+	// Flatten all of the lighting object data into the array buffers
+	for( var i=0; i < this.lights.length; i++ ) {
+		
+		var light = this.lights[i];
+		
+		buffers.position[i * 3]         = light.position[0];
+		buffers.position[i * 3 + 1]     = light.position[0 + 1];
+		buffers.position[i * 3 + 2]     = light.position[0 + 2];
+		buffers.color[i * 3]            = light.color[0];
+		buffers.color[i * 3 + 1]        = light.color[0 + 1];
+		buffers.color[i * 3 + 2]        = light.color[0 + 2];
+		buffers.intensity[i]            = light.intensity;
+		buffers.linearAttenuation[i]    = light.linearAttenuation;
+		buffers.quadraticAttenuation[i] = light.quadraticAttenuation;
+	}
+	
+};
+
 BunnyDemo.prototype.draw = function() {
   
   var gl = this.gl;
@@ -219,10 +282,13 @@ BunnyDemo.prototype.updateAttributesAndUniforms = function() {
   gl.uniformMatrix4fv(this.locations.model, false, this.transforms.model);
   gl.uniformMatrix3fv(this.locations.normalMatrix, false, this.transforms.normalMatrix);
   gl.uniform4fv(this.locations.color, this.color);
-  gl.uniform3fv(this.locations.spotLight, this.lights.spot);
-  gl.uniform3fv(this.locations.fillLight, this.lights.fill);
-  gl.uniform3fv(this.locations.backLight, this.lights.back);
-  gl.uniform1f(this.locations.lightIntensity, this.lightIntensity);
+  
+  // Update the uniform values
+  gl.uniform3fv(this.locations.lights.position,             this.buffers.lights.position);
+  gl.uniform3fv(this.locations.lights.color,                this.buffers.lights.color);
+  gl.uniform1fv(this.locations.lights.intensity,            this.buffers.lights.intensity);
+  gl.uniform1fv(this.locations.lights.linearAttenuation,    this.buffers.lights.linearAttenuation);
+  gl.uniform1fv(this.locations.lights.quadraticAttenuation, this.buffers.lights.quadraticAttenuation);
   
   // Set the positions attribute
   gl.enableVertexAttribArray(this.locations.position);
@@ -238,6 +304,23 @@ BunnyDemo.prototype.updateAttributesAndUniforms = function() {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.elements );
   
 };
+
+function SpotLight(position, color, intensity, linearAttenuation, quadraticAttenuation) {
+	
+	// A vector 3 representing the position of the light
+	this.position = position;
+	
+	// A vector 3 of the color, with values ranging from 0-1
+	this.color = color;
+	
+	// A single number around the value of 1 that adjusts the light intensity
+	this.intensity = intensity;
+	
+	// How much the light dims by the distance from the light
+	// Interactive graph of how this works: https://www.desmos.com/calculator/jdzi6pupp5
+	this.linearAttenuation = linearAttenuation;
+	this.quadraticAttenuation = quadraticAttenuation;
+}
 
 //Run the code
 var bunnyDemo = new BunnyDemo();

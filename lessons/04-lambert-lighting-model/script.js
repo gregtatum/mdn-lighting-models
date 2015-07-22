@@ -1,9 +1,31 @@
 /*
-  TODO
+  It's time to define an actual lighting model. Arguably the simplest representation of
+  a lit surface is based off of Lambert's cosine law. This law states that the brightness
+  of a surface is determined by the size of the angle between the light source, and the
+  surface normal. Luckily, we now have a surface normal we can work with and just need
+  the light source.
+
+  To start we'll need a normalized vector (a vector of length 1) to define what angle our
+  light source is. This type of light simulates something like the sun where the light
+  is coming in from a single direction.
+
+  For instance we can make a light coming directly from different direction. Think in terms
+  of starting at the origin, and creating a vector that points at the light.
 */
 
-// A utility function to make a vector have a length of 1
+var lightFromAbove = [0, 1, 0];
+var lightFromRight = [1, 0, 0];
+var lightFromBelow = [0, -1, 0];
+
+/*
+  For convenience we can define a vector of any length greater than 0 and then normalize
+  it to be of length one. Below is a utility function to do this in JavaScript (it's
+  built in to GLSL, the shader code language.
+*/
+
 function normalize( vector ) {
+  
+  // A utility function to make a vector have a length of 1
   
   var length = Math.sqrt(
     vector[0] * vector[0] +
@@ -17,6 +39,95 @@ function normalize( vector ) {
     vector[2] / length
   ]
 }
+
+//Define a light coming in from the top left
+
+var lightFromTopRight = normalize([1, 1, 0]);
+
+console.log("lightFromTopRight", lightFromTopRight) // [0.7071067811865475, 0.7071067811865475, 0]
+
+var lightFromBottomRight = normalize([-1, 1, 0]);
+
+console.log("lightFromBottomRight", lightFromBottomRight) // [-0.7071067811865475, 0.7071067811865475, 0]
+
+/*
+  Now all that is left is to determine the angle between the surface normal and
+  the light. The easiest way to find the angle between two vectors of length
+  one is to take their dot product. Again, this is in GLSL, but we must define
+  it in JavaScript.
+
+  Now take a look at what types of values are returned by the dot product using
+  our "lights" from above. We'll also define a ground normal that points straight
+  up.
+*/
+
+function dotProduct( vectorA, vectorB ) {
+  
+  return (
+    (vectorA[0] * vectorB[0]) +
+    (vectorA[1] * vectorB[1]) +
+    (vectorA[2] * vectorB[2])
+  )
+}
+
+var groundNormal = [0,1,0];
+
+console.log("cross:", dotProduct(groundNormal, lightFromAbove));
+// 1
+
+console.log("cross:", dotProduct(groundNormal, lightFromTopRight));
+// 0.7071067811865475
+
+console.log("cross:", dotProduct(groundNormal, lightFromRight));
+// 0
+
+console.log("cross:", dotProduct(groundNormal, lightFromBottomRight));
+// -0.7071067811865475
+
+console.log("cross:", dotProduct(groundNormal, lightFromBelow));
+// -1
+
+/*
+  This shows that when the angle of the surface normal and light are the same,
+  the value of the light is 1. As the tilt of the light moves away it reduces
+  the amount of light. For the light at the top right this value is about 0.7. The light
+  then moves further down to be at a right angle to our surface normal. The value
+  here is 0, so no light.
+
+  Here's where this model gets a little funky. The light from below has negative value.
+  This doesn't make sense from a lighting perspective, so if the light value is negative
+  it gets set to 0 in our shader.
+
+  The rest of the bunny code should look pretty much the same, but in the fragment shader
+  the light calculation ends up looking like this.
+
+      float lightDotProduct = dot( normalize(vNormal), light );
+      float surfaceBrightness = max( 0.0, lightDotProduct );
+      gl_FragColor = vec4(color.xyz * surfaceBrightness, color.w);
+
+  To break this down. First the normal passed into the fragment shader is re-normalized
+  because the interpolation process between vertices can make the vector a different length.
+
+  Next the dot product is calculated, and then set to be greater or equal to 0.
+
+  Finally the light amount is multiplied against the RGB values of the color, and the
+  gl_FragColor is set.
+
+
+  Exercises:
+    
+    * Play around with the GUI interface to change the light direction.
+
+    * Add variables to adjust the brightness and color of the light.
+
+    * Advanced: This example's light value is calculated per-fragment. For a less precise
+      but cheaper lighting model it's possible to calculate the surface brightness in the
+      vertex shader. This value is then passed down from the vertices as a varying value
+      and smoothed between the fragments. There are usually far fewer vertices than pixels
+      on the screen, and so less work will need to be done.
+*/
+
+
 
 function BunnyDemo () {
   
@@ -41,6 +152,8 @@ function BunnyDemo () {
   this.computeProjectionMatrix();
   this.computeViewMatrix();
   //the model matrix gets re-computed every draw call
+  
+  this.addDatGui();
   
   // Start the drawing loop
   this.draw();
@@ -206,6 +319,38 @@ BunnyDemo.prototype.updateAttributesAndUniforms = function() {
   // Set the elements array, or the order the positions will be drawn
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.elements );
   
+};
+
+BunnyDemo.prototype.addDatGui = function() {
+	
+	// For the demo, add an interface to live-tweak the values
+	
+	var light = {
+		lightDirectionX : this.light[0],
+		lightDirectionY : this.light[1],
+		lightDirectionZ : this.light[2]
+	};
+	
+	var syncWithUniforms = function() {
+		if( light.lightDirectionX === 0 && light.lightDirectionY === 0 && light.lightDirectionZ === 0 ) {
+			light.lightDirectionY = -1;
+		}
+		this.light = normalize([
+			light.lightDirectionX,
+			light.lightDirectionY,
+			light.lightDirectionZ
+		]);
+		light.lightDirectionX = this.light[0];
+		light.lightDirectionY = this.light[1];
+		light.lightDirectionZ = this.light[2];
+		
+	}.bind(this);
+	
+	var gui = new dat.GUI();
+	
+	gui.add(light, "lightDirectionX").min(-1).max(1).onChange(syncWithUniforms);
+	gui.add(light, "lightDirectionY").min(-1).max(1).onChange(syncWithUniforms);
+	gui.add(light, "lightDirectionZ").min(-1).max(1).onChange(syncWithUniforms);
 };
 
 //Run the code

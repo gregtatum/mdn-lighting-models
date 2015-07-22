@@ -20,12 +20,14 @@
     uniform mat4 projection;
     uniform mat3 normalMatrix;
     
-    // Pass the normal down to the fragment shader
+    // Pass the normal and position down to the fragment shader
     varying vec3 vNormal;
+    varying vec3 vPosition;
     
     void main() {
       
       vNormal = normalMatrix * normal;
+      vPosition = position;
       // gl_Position = projection * view * model * vec4( position, 1.0 );
       gl_Position = projection * view * model * vec4( position, 1.0 );
     }
@@ -37,23 +39,58 @@
     // The model color
     uniform vec4 color;
     
-    // The lights
-    uniform vec3 spotLight;
-    uniform vec3 fillLight;
-    uniform vec3 backLight;
-    uniform float lightIntensity;
+    // Use a define to easily manage the number of lights used
+    #define NUMBER_LIGHTS 3
     
+    // The uniform light values as arrays
+    uniform vec3 lightPosition[NUMBER_LIGHTS];
+    uniform vec3 lightColor[NUMBER_LIGHTS];
+    uniform float lightIntensity[NUMBER_LIGHTS];
+    uniform float lightLinearAttenuation[NUMBER_LIGHTS];
+    uniform float lightQuadraticAttenuation[NUMBER_LIGHTS];
+    
+    // The normal and position passed in from the vertex shader
     varying vec3 vNormal;
+    varying vec3 vPosition;
     
     void main() {
       
-      float light = lightIntensity * (
-        max( 0.0, dot( vNormal, spotLight ) )
-        // dot( vNormal, fillLight ) +
-        // dot( vNormal, backLight )
-      );
+      // Set the value of the lighting to this variable
+      vec3 lighting;
       
-      gl_FragColor = vec4(color.xyz * light, color.w);
+      // Go through each light
+      for(int i=0; i < NUMBER_LIGHTS; i++) {
+
+        // Calculate the distance of this fragment from the light, and direction
+        float distanceFromLight = distance(lightPosition[i], vPosition);
+        vec3 direction = normalize(lightPosition[i] - vPosition);
+        
+        /*
+          Perform the light calculation based on the angle of the surface
+          Additionally adjust the light intensity.
+        */
+        float lightCalculation = max(0.0, dot(vNormal, direction));
+        
+        /*
+          Use the following formula to calculate the light falloff
+          https://www.desmos.com/calculator/jdzi6pupp5
+        
+          There are many other strategies for handling light falloff.
+        */
+        
+        float falloff = (
+          1.0 / (
+            1.0 +
+            lightLinearAttenuation[i] * distanceFromLight +
+            lightQuadraticAttenuation[i] * pow(distanceFromLight, 2.0)
+          )
+        );
+        
+        // Combine the values and add it to the overall lighting
+        lighting += lightCalculation * falloff * lightIntensity[i] * lightColor[i];
+      }
+
+      gl_FragColor = vec4(color.xyz * lighting, color.w);
     }
   </script>
     

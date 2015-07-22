@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset='utf-8'>
-  <title>A Model with no Lighting</title>
+  <title>A Model with Directional Lighting</title>
   <link type='text/css' rel='stylesheet' href='../../shared/style.css' />
   <style>
   </style>
@@ -44,17 +44,26 @@
     
     void main() {
       
-      float light = max( 0.0, dot( vNormal, light ) );
-      gl_FragColor = vec4(color.xyz * light, color.w);
+      float lightDotProduct = dot( normalize(vNormal), light );
+      float surfaceBrightness = max( 0.0, lightDotProduct );
+      gl_FragColor = vec4(color.xyz * surfaceBrightness, color.w);
+      
     }
   </script>
     
   <canvas id="canvas"></canvas>
-    
+  <h1 class='lesson-title'>
+    <a href='../03-transform-normals'>&larr;</a>
+    Lambert Lighting Model
+    <!-- <a href='../05-lambert-lighting-model'>&rarr;</a> -->
+  </h1>
+  
   <script type='text/javascript' src='../../shared/bunny-model.js'></script>
   <script type='text/javascript' src='../../shared/matrices.js'></script>
   <script type='text/javascript' src='../../shared/shaders.js'></script>
+  <script type='text/javascript' src='../../shared/dat.gui.min.js'></script>
   <script type='text/javascript' src='script.js'></script>
-    
+  
+  
 </body>
 </html>

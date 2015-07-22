@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset='utf-8'>
-  <title>Transform Normals</title>
+  <title>Transformed Normals</title>
   <link type='text/css' rel='stylesheet' href='../../shared/style.css' />
   <style>
   </style>
@@ -45,15 +45,28 @@
     
     void main() {
       
-      //Normals are ranged -1 to 1. Transform it to 0 to 1
-      vec3 adjustedNormal = vNormal * 0.5 + 0.5;
+      /*
+        The normal is passed down from the vertex shader, but each fragment's
+        normal can be interpolated between the different vertices. During
+        this interpolation (or smoothing) the normal can become denormalized
+        (not of length 1). So it must be re-normalized during this step.
+      
+        Also normals' values are ranged (-1,-1,-1) to (1,1,1). Transform it
+        to (0,0,0) to (1,1,1)
+      */
+      vec3 adjustedNormal = normalize(vNormal) * 0.5 + 0.5;
       
       gl_FragColor = vec4(adjustedNormal, 1.0);
     }
   </script>
     
   <canvas id="canvas"></canvas>
-    
+  <h1 class='lesson-title'>
+    <a href='../02-normal-lighting'>&larr;</a>
+    Transformed Normals
+    <a href='../04-lambert-lighting-model'>&rarr;</a>
+  </h1>
+  
   <script type='text/javascript' src='../../shared/bunny-model.js'></script>
   <script type='text/javascript' src='../../shared/matrices.js'></script>
   <script type='text/javascript' src='../../shared/shaders.js'></script>
