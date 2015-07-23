@@ -1,8 +1,10 @@
-function matrixArrayToCssMatrix (array) {
+var MDN = MDN || {};
+
+MDN.matrixArrayToCssMatrix = function (array) {
   return "matrix3d(" + array.join(',') + ")";
 }
 
-function multiplyPoint (matrix, point) {
+MDN.multiplyPoint = function (matrix, point) {
   
   var x = point[0], y = point[1], z = point[2], w = point[3];
   
@@ -19,7 +21,7 @@ function multiplyPoint (matrix, point) {
   ];
 }
 
-function multiplyMatrices (a, b) {
+MDN.multiplyMatrices = function (a, b) {
   
   // TODO - Simplify for explanation
   // currently taken from https://github.com/toji/gl-matrix/blob/master/src/gl-matrix/mat4.js#L306-L337
@@ -59,18 +61,18 @@ function multiplyMatrices (a, b) {
   return result;
 }
 
-function multiplyArrayOfMatrices (matrices) {
+MDN.multiplyArrayOfMatrices = function (matrices) {
   
   var inputMatrix = matrices[0];
   
   for(var i=1; i < matrices.length; i++) {
-    inputMatrix = multiplyMatrices(inputMatrix, matrices[i]);
+    inputMatrix = MDN.multiplyMatrices(inputMatrix, matrices[i]);
   }
   
   return inputMatrix;
 }
 
-function normalMatrix (matrix) {
+MDN.normalMatrix = function (matrix) {
 
   /*
     This function takes the inverse and then transpose of the provided
@@ -123,7 +125,7 @@ function normalMatrix (matrix) {
   return result;
 }
 
-function rotateXMatrix (a) {
+MDN.rotateXMatrix = function (a) {
   
   var cos = Math.cos;
   var sin = Math.sin;
@@ -136,7 +138,7 @@ function rotateXMatrix (a) {
   ];
 }
 
-function rotateYMatrix (a) {
+MDN.rotateYMatrix = function (a) {
 
   var cos = Math.cos;
   var sin = Math.sin;
@@ -149,7 +151,7 @@ function rotateYMatrix (a) {
   ];
 }
 
-function rotateZMatrix (a) {
+MDN.rotateZMatrix = function (a) {
 
   var cos = Math.cos;
   var sin = Math.sin;
@@ -162,7 +164,7 @@ function rotateZMatrix (a) {
   ];
 }
 
-function translateMatrix (x, y, z) {
+MDN.translateMatrix = function (x, y, z) {
 	return [
 	    1,    0,    0,   0,
 	    0,    1,    0,   0,
@@ -171,7 +173,7 @@ function translateMatrix (x, y, z) {
 	];
 }
 
-function scaleMatrix (w, h, d) {
+MDN.scaleMatrix = function (w, h, d) {
 	return [
 	    w,    0,    0,   0,
 	    0,    h,    0,   0,
@@ -180,7 +182,7 @@ function scaleMatrix (w, h, d) {
 	];
 }
 
-function perspectiveMatrix (fieldOfViewInRadians, aspectRatio, near, far) {
+MDN.perspectiveMatrix = function (fieldOfViewInRadians, aspectRatio, near, far) {
   
   // Construct a perspective matrix
   
@@ -202,7 +204,7 @@ function perspectiveMatrix (fieldOfViewInRadians, aspectRatio, near, far) {
   ];
 }
 
-function orthographicMatrix(left, right, bottom, top, near, far) {
+MDN.orthographicMatrix = function(left, right, bottom, top, near, far) {
   
   // Each of the parameters represents the plane of the bounding box
   
@@ -222,7 +224,7 @@ function orthographicMatrix(left, right, bottom, top, near, far) {
   ];
 }
 
-function normalize( vector ) {
+MDN.normalize = function( vector ) {
   
   // A utility function to make a vector have a length of 1
   

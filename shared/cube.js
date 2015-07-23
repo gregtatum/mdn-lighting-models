@@ -1,4 +1,6 @@
-function createCubeData() {
+var MDN = MDN || {};
+
+MDN.createCubeData = function() {
   
   var positions = [
     // Front face
@@ -73,7 +75,7 @@ function createCubeData() {
   }
 }
 
-function createBuffersForCube( gl, cube ) {
+MDN.createBuffersForCube = function( gl, cube ) {
   
   var positions = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positions);
@@ -94,7 +96,7 @@ function createBuffersForCube( gl, cube ) {
   }
 }
 
-function drawCube( elementsBuffer ) {
+MDN.drawCube = function( elementsBuffer ) {
   
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementsBuffer);
   gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
