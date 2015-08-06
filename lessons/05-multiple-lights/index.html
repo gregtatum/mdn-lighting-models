@@ -20,15 +20,17 @@
     uniform mat4 projection;
     uniform mat3 normalMatrix;
     
-    // Pass the normal and position down to the fragment shader
+    // Pass the normal down to the fragment shader
     varying vec3 vNormal;
+    
+    // Pass the position in world space down to the fragment shader
     varying vec3 vPosition;
     
     void main() {
       
       vNormal = normalMatrix * normal;
-      vPosition = position;
-      // gl_Position = projection * view * model * vec4( position, 1.0 );
+      vPosition = (model * vec4(position, 1.0)).xyz;
+
       gl_Position = projection * view * model * vec4( position, 1.0 );
     }
   </script>

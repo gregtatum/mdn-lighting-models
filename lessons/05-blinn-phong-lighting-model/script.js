@@ -1,27 +1,3 @@
-/*
-  One issue with the previous example was that the fake normal lighting
-  was stuck to the model. When the model rotated, the color rotated with
-  it. Lighting tends to come from a specific direction. The normals
-  of the model need to be transformed along with the model. However,
-  before we use our transform matrices there is a big caveat. The normals
-  require a different kind of transformation compared to the position
-  vectors.
-
-  The normal matrix uses only the model and view transforms. These are
-  combined together before hand in JavaScript. The next steps involved
-  changing it into a 3x3 matrix, inverting it, and then transposing
-  the result. The actual matrix math involved here is beyond the scope
-  of these lessons.
-
-  Notice how once this matrix is created and applied to the normal in
-  the shader how the colors are fixed in relation to the camera.
-
-
-  Exercise:
-    Modify the modelView matrix that is turned into the normalMatrix
-    to spin the normal colors that are used on the model.
-*/
-
 function BunnyDemo () {
   
   // Prep the canvas
@@ -37,12 +13,20 @@ function BunnyDemo () {
   this.locations = this.createLocations();
   this.transforms = {}; // All of the matrix transforms get saved here
   
-  this.color = [0.0, 0.4, 0.7, 1.0];
+  this.cameraPosition    = [0, 5, 10];
+  this.color             = [0.1, 0.4, 0.7, 1.0];
+  this.specularColor     = [1.0, 1.0, 1.0, 1.0];
+  this.specularAmount    = 0.5;
+  this.specularShininess = 50;
+  
+  this.light = MDN.normalize([-0.5, 1.0, 1.0]);
   
   //These matrices don't change and only need to be computed once
   this.computeProjectionMatrix();
   this.computeViewMatrix();
   //the model matrix gets re-computed every draw call
+  
+  this.addDatGui();
   
   // Start the drawing loop
   this.draw();
@@ -95,15 +79,21 @@ BunnyDemo.prototype.createLocations = function() {
   var locations = {
     
     // Save the uniform locations
-    model        : gl.getUniformLocation(this.webglProgram, "model"),
-    view         : gl.getUniformLocation(this.webglProgram, "view"),
-    projection   : gl.getUniformLocation(this.webglProgram, "projection"),
-    normalMatrix : gl.getUniformLocation(this.webglProgram, "normalMatrix"),
-    color        : gl.getUniformLocation(this.webglProgram, "color"),
-  
+    model             : gl.getUniformLocation(this.webglProgram, "model"),
+    view              : gl.getUniformLocation(this.webglProgram, "view"),
+    projection        : gl.getUniformLocation(this.webglProgram, "projection"),
+    normalMatrix      : gl.getUniformLocation(this.webglProgram, "normalMatrix"),
+    color             : gl.getUniformLocation(this.webglProgram, "color"),
+    specularColor     : gl.getUniformLocation(this.webglProgram, "specularColor"),
+    light             : gl.getUniformLocation(this.webglProgram, "light"),
+    cameraPosition    : gl.getUniformLocation(this.webglProgram, "cameraPosition"),
+    ambientLight      : gl.getUniformLocation(this.webglProgram, "ambientLight"),
+    specularAmount    : gl.getUniformLocation(this.webglProgram, "specularAmount"),
+    specularShininess : gl.getUniformLocation(this.webglProgram, "specularShininess"),
+    
     // Save the attribute location
-    position     : gl.getAttribLocation(this.webglProgram, "position"),
-    normal       : gl.getAttribLocation(this.webglProgram, "normal")
+    position          : gl.getAttribLocation(this.webglProgram, "position"),
+    normal            : gl.getAttribLocation(this.webglProgram, "normal")
   }
   
   return locations;
@@ -112,12 +102,16 @@ BunnyDemo.prototype.createLocations = function() {
 BunnyDemo.prototype.computeViewMatrix = function() {
   
   // Move the camera so that the bunny is in view
-  var view = MDN.invertMatrix(
-    MDN.translateMatrix(0, 5, 10)
+  var view = MDN.translateMatrix(
+	  this.cameraPosition[0],
+	  this.cameraPosition[1],
+	  this.cameraPosition[2]
   );
   
+  var inverse = MDN.invertMatrix(view);
+  
   //Save as a typed array so that it can be sent to the GPU
-  this.transforms.view = new Float32Array(view);
+  this.transforms.view = new Float32Array(inverse);
 }
 
 BunnyDemo.prototype.computeProjectionMatrix = function() {
@@ -162,7 +156,7 @@ BunnyDemo.prototype.computeNormalMatrix = function() {
   // Run the function from the shared/matrices.js that takes
   // the inverse and then transpose of the provided matrix
   // and returns a 3x3 matrix.
-  this.transforms.normalMatrix = MDN.normalMatrix(modelView)
+  this.transforms.normalMatrix = MDN.normalMatrix(this.transforms.model)
 };
 
 BunnyDemo.prototype.draw = function() {
@@ -173,6 +167,7 @@ BunnyDemo.prototype.draw = function() {
   // Compute our model matrix
   this.computeModelMatrix( now );
   this.computeNormalMatrix();
+  
   // Update the data going to the GPU
   this.updateAttributesAndUniforms();
   
@@ -193,6 +188,11 @@ BunnyDemo.prototype.updateAttributesAndUniforms = function() {
   gl.uniformMatrix4fv(this.locations.model, false, this.transforms.model);
   gl.uniformMatrix3fv(this.locations.normalMatrix, false, this.transforms.normalMatrix);
   gl.uniform4fv(this.locations.color, this.color);
+  gl.uniform4fv(this.locations.specularColor, this.specularColor);
+  gl.uniform3fv(this.locations.light, this.light);
+  gl.uniform3fv(this.locations.cameraPosition, this.cameraPosition);
+  gl.uniform1f(this.locations.specularAmount, this.specularAmount);
+  gl.uniform1f(this.locations.specularShininess, this.specularShininess);
   
   // Set the positions attribute
   gl.enableVertexAttribArray(this.locations.position);
@@ -206,6 +206,65 @@ BunnyDemo.prototype.updateAttributesAndUniforms = function() {
   
   // Set the elements array, or the order the positions will be drawn
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.elements );
+  
+};
+
+BunnyDemo.prototype.addDatGui = function() {
+  
+  // For the demo, add an interface to live-tweak the values
+
+  var light = {
+    lightDirectionX : this.light[0],
+    lightDirectionY : this.light[1],
+    lightDirectionZ : this.light[2]
+  };
+  
+  var syncWithUniforms = function() {
+    
+    if( light.lightDirectionX === 0 && light.lightDirectionY === 0 && light.lightDirectionZ === 0 ) {
+      light.lightDirectionY = -1;
+    }
+    this.light = MDN.normalize([
+      light.lightDirectionX,
+      light.lightDirectionY,
+      light.lightDirectionZ
+    ]);
+    light.lightDirectionX = this.light[0];
+    light.lightDirectionY = this.light[1];
+    light.lightDirectionZ = this.light[2];
+    
+  }.bind(this);
+  
+  var gui = new dat.GUI();
+  
+  gui.add(light, "lightDirectionX").min(-1).max(1).onChange(syncWithUniforms);
+  gui.add(light, "lightDirectionY").min(-1).max(1).onChange(syncWithUniforms);
+  gui.add(light, "lightDirectionZ").min(-1).max(1).onChange(syncWithUniforms);
+
+  // Dat.gui expects colors to be 0-255
+  function to255(c) {
+    return [c[0]*255, c[1]*255, c[2]*255, c[3]*255];
+  }
+  
+  function from255(c) {
+    return [c[0]/255, c[1]/255, c[2]/255, c[3]/255];
+  }
+  
+  var colors = {
+    diffuseColor : to255(this.color),
+    specularColor : to255(this.specularColor)
+  }
+
+  gui.addColor(colors, "diffuseColor").onChange(function() {
+    this.color = from255(colors.diffuseColor);
+  }.bind(this))
+  
+  gui.addColor(colors, "specularColor").onChange(function() {
+    this.specularColor = from255(colors.specularColor);
+  }.bind(this))
+    
+  gui.add(this, "specularAmount").min(0).max(10);
+  gui.add(this, "specularShininess").min(1).max(100);
   
 };
 

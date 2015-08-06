@@ -116,8 +116,10 @@ BunnyDemo.prototype.createLocations = function() {
 
 BunnyDemo.prototype.computeViewMatrix = function() {
   
-  // Move the camera back and down so that the bunny is in view
-  var view = MDN.translateMatrix(0, -5, -10);
+  // Move the camera so that the bunny is in view
+  var view = MDN.invertMatrix(
+    MDN.translateMatrix(0, 5, 10)
+  );
   
   //Save as a typed array so that it can be sent to the GPU
   this.transforms.view = new Float32Array(view);

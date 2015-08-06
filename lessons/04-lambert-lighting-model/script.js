@@ -5,11 +5,11 @@
   surface normal. Luckily, we now have a surface normal we can work with and just need
   the light source.
 
-  To start we'll need a normalized vector (a vector of length 1) to define what angle our
-  light source is. This type of light simulates something like the sun where the light
-  is coming in from a single direction.
+  To start we'll need a normalized vector (a vector of length 1) to define another vector
+  that points at our light source. This type of light simulates something like the sun
+  where the light is coming in from a single direction.
 
-  For instance we can make a light coming directly from different direction. Think in terms
+  For instance we can make a light coming from different directions. Think in terms
   of starting at the origin, and creating a vector that points at the light.
 */
 
@@ -19,8 +19,9 @@ var lightFromBelow = [0, -1, 0];
 
 /*
   For convenience we can define a vector of any length greater than 0 and then normalize
-  it to be of length one. Below is a utility function to do this in JavaScript (it's
-  built in to GLSL, the shader code language.
+  it to be of length one. There isn't a normalize function built in to JavaScript so
+  we will use the MDN.normalize() function. Luckily there is one built into to GLSL (the
+  shader code language.)
 */
 
 //Define a light coming in from the top left
@@ -36,8 +37,8 @@ console.log("lightFromBottomRight", lightFromBottomRight) // [-0.707106781186547
 /*
   Now all that is left is to determine the angle between the surface normal and
   the light. The easiest way to find the angle between two vectors of length
-  one is to take their dot product. Again, this is in GLSL, but we must define
-  it in JavaScript.
+  1 is to take their dot product. Again, the dot() function already existsin GLSL,
+  but we must define it in JavaScript.
 
   Now take a look at what types of values are returned by the dot product using
   our "lights" from above. We'll also define a ground normal that points straight
@@ -206,8 +207,10 @@ BunnyDemo.prototype.createLocations = function() {
 
 BunnyDemo.prototype.computeViewMatrix = function() {
   
-  // Move the camera back and down so that the bunny is in view
-  var view = MDN.translateMatrix(0, -5, -10);
+    // Move the camera so that the bunny is in view
+  var view = MDN.invertMatrix(
+    MDN.translateMatrix(0, 5, 10)
+  );
   
   //Save as a typed array so that it can be sent to the GPU
   this.transforms.view = new Float32Array(view);

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>Specular Highlights - Blinn Phong Reflection Model</title>
+  <link type='text/css' rel='stylesheet' href='../../shared/style.css' />
+  <style>
+  </style>
+</head>
+<body>
+  
+  <script id="vertex-shader" type="x-shader/x-vertex">
+    // The normals are added along with the positions
+    attribute vec3 position;
+    attribute vec3 normal;
+    
+    // The transformation matrices
+    uniform mat4 model;
+    uniform mat4 view;
+    uniform mat4 projection;
+    uniform mat3 normalMatrix;
+    
+    // Pass the normal down to the fragment shader
+    varying vec3 vNormal;
+    
+    // Pass the position in world space down to the fragment shader
+    varying vec3 vPosition;
+    
+    void main() {
+      
+      vNormal = normalMatrix * normal;
+      vPosition = (model * vec4( position, 1.0 )).xyz;
+      
+      gl_Position = projection * view * model * vec4( position, 1.0 );
+    }
+  </script>
+
+  <script id="fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+
+    // This is needed to figure out the specular highlight
+    uniform vec3 cameraPosition;
+
+    // The model color
+    uniform vec4 color;
+
+    // The model's specular color
+    uniform vec4 specularColor;
+
+    // The amount of ambient light
+    uniform float ambientLight;
+    
+    // The specular values passed in from the shader
+    uniform float specularAmount;
+    uniform float specularShininess;
+    
+    // The lights
+    uniform vec3 light;
+    
+    // The values passed down from the vertex shader
+    varying vec3 vNormal;
+    varying vec3 vPosition;
+    
+    void main() {
+      
+      // Get the direction from the surface to the camera, which is located at
+      // (0,-1,0) in clip space. The camera position is hardcoded for convenience.
+      vec3 directionToCamera = normalize(cameraPosition - vPosition);
+      
+      // Find the vector pointing halfway between the directions
+      // of the camera and light from this point on the surface
+      vec3 halfwayVector = normalize( directionToCamera + light );
+      
+      // Calculate the specular highlight
+      float specularBrightness = (
+        
+        specularAmount * // Adjust the overall amount of specular light
+
+        // Find the angle between the normal and the halfwayVector by taking
+        // the dot product, and then raise it to a certain power. The power
+        // increases or decreases the size of the bright spot.
+        pow(
+          max(0.0, dot(vNormal, halfwayVector)),
+          specularShininess
+        )
+      );
+      
+      // Calculate the brightness of the surface using the lambertian lighting model
+      float lightDotProduct = dot( normalize(vNormal), light );
+      float surfaceBrightness = max( 0.0, lightDotProduct );
+      
+      // Multiply together all of the various light values
+      gl_FragColor = vec4(color.xyz * surfaceBrightness + specularColor.xyz * specularBrightness, color.w);
+      
+    }
+  </script>
+    
+  <canvas id="canvas"></canvas>
+  <h1 class='lesson-title'>
+    <a href='../04-lambert-lighting-model'>&larr;</a>
+    Blinn Phong Lighting Model
+    <!-- <a href='../05-lambert-lighting-model'>&rarr;</a> -->
+  </h1>
+  
+  <script type='text/javascript' src='../../shared/bunny-model.js'></script>
+  <script type='text/javascript' src='../../shared/matrices.js'></script>
+  <script type='text/javascript' src='../../shared/shaders.js'></script>
+  <script type='text/javascript' src='../../shared/dat.gui.min.js'></script>
+  <script type='text/javascript' src='script.js'></script>
+  
+  
+</body>
+</html>
