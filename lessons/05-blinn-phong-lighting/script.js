@@ -5,7 +5,9 @@
   brightness is exactly the same no matter what angle the surface is viewed at.
   A shiny surface like plastic or metal changes its brightness based on where
   the observer is located. In order to simulate this effect the camera position
-  must be added to the mix in the lighting equation.
+  must be added to the mix in the lighting equation. This effect can be achieved
+  using what is known as the Blinn Phong lighting model, named after the
+  researchers Jim Blinn and Bui Tuong Phong.
 
   Note: The following vectors are all assumed to be length one.
 
