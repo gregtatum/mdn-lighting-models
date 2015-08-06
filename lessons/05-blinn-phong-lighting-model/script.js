@@ -1,3 +1,65 @@
+/*
+  The classic computer rendered surface is the shiny surface. Up to this point
+  the reflectance model is only calculating an idealized lambertian surface by
+  measuring the angle of the surface normal and light source. This surface
+  brightness is exactly the same no matter what angle the surface is viewed at.
+  A shiny surface like plastic or metal changes its brightness based on where
+  the observer is located. In order to simulate this effect the camera position
+  must be added to the mix in the lighting equation.
+
+  Note: The following vectors are all assumed to be length one.
+
+  The easiest value to compute to express this relationship between the surface,
+  the camera, and the light source is the halfway angle vector. First let's
+  define two vectors. The first is the view vector, or the vector that represents
+  the direction of the camera from the current surface point. The next is the
+  light vector which we have previously defined. If these points are added together
+  and renormalized (made to be length one again,) then this becomes the halfway
+  vector. This vector can be used to change the brightness of the surface depending
+  on both the camera and the light vector.
+
+  Like in the previous section, taking the dot product between the normal and the
+  halfway vector will provide some basic lighting information. In fact a simple
+  approach could be to add the two dot products together. The shader code could
+  look something like this:
+
+  float brightness = dot( surfaceNormal, lightDirection ) + dot( surfaceNormal, lightDirection );
+
+  This is a good first step towards implementing what's known as specular light.
+  For some more controls and refinement of this lighting model another math trick
+  is needed to control how hard or soft this new shiny surface is. This can be
+  accomplished by raising the dot product to a certain power. Keep in mind that the
+  dot product of these vectors will never be more than 1.
+
+  Note the trend here when values 0-1 (like our surface brightness) are raised to
+  the power of 3.
+
+  pow(1.0, 3) == 1.000
+  pow(0.9, 3) == 0.729
+  pow(0.8, 3) == 0.512
+  pow(0.7, 3) == 0.342
+  pow(0.6, 3) == 0.216
+
+  What this demonstrates is that the higher that power the quicker the brightness
+  drops off. This will give our lighting model a tool to either dim or brighten
+  the edges of our specular highlight.
+
+  View the shader code to see how this is accomplished using GLSL. Additionally
+  the shader code features a separate specular color and surface color.
+
+  Exercise:
+
+    1) Play with the example's interactive interface to adjust values to get a feel for
+       this lighting model.
+
+    2) Implement a light color that affects both the surface and specular light.
+
+    3) Add a constant light to the equation that is unaffected by any other light or
+       surface normal like in the first example. Try setting these 3 types of lights
+       to different colors.
+  
+*/
+
 function BunnyDemo () {
   
   // Prep the canvas
